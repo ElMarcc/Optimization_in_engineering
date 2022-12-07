@@ -17,6 +17,7 @@ nov_sunrise = 8
 dec_sunrise = 8.5
 summer_sunrise = 6.75
 winter_sunrise = 8
+year_sunrise = 7.5
 
 jan_sunset = 17.5
 feb_sunset = 18.25
@@ -32,6 +33,7 @@ nov_sunset = 17.25
 dec_sunset = 17
 summer_sunset = 21
 winter_sunset = 18
+year_sunset = 19.5
 
 # defines how much average power income [Wh] you have per
 # peak power capacity [W] you have installed every day
@@ -50,6 +52,7 @@ nov_power_income = 3
 dec_power_income = 2.7
 summer_power_income = 4.7
 winter_power_income = 3.5
+year_power_income = 4.1
 
 # avg wind power production each month per max capacity in [MW / MW]
 max_cap = 17484
@@ -67,6 +70,8 @@ nov_wind = 4368.3 / max_cap
 dec_wind = 5883.8 / max_cap
 summer_wind = 2982.3 / max_cap
 winter_wind = 5974 / max_cap
+year_wind = 4478.2 / max_cap
+
 
 jan_wind_series = np.random.normal(jan_wind, jan_wind / 3, 48).clip(min=0)
 feb_wind_series = np.random.normal(feb_wind, feb_wind / 3, 48).clip(min=0)
@@ -82,7 +87,7 @@ nov_wind_series = np.random.normal(nov_wind, nov_wind / 3, 48).clip(min=0)
 dec_wind_series = np.random.normal(dec_wind, dec_wind / 3, 48).clip(min=0)
 summer_wind_series = np.random.normal(summer_wind, summer_wind / 3, 48).clip(min=0)
 winter_wind_series = np.random.normal(winter_wind, winter_wind / 3, 48).clip(min=0)
-
+year_wind_series = np.random.normal(year_wind, year_wind / 3, 48).clip(min=0)
 
 wind_dict = {
     'jan_wind': jan_wind_series,
@@ -99,7 +104,60 @@ wind_dict = {
     'dec_wind': dec_wind_series,
     'summer_wind': summer_wind_series,
     'winter_wind': winter_wind_series,
+    'year_wind': year_wind_series,
 }
+
+winter_offshore = 15550000 / 365 / 48 / 7500
+year_offshore = 26000000 / 365 / 48 / 7500
+summer_offshore = 10450000 / 365 / 48 / 7500
+jan_offshore = 2550000 / 365 / 48 / 7500
+feb_offshore = 2200000 / 365 / 48 / 7500
+mar_offshore = 2800000 / 365 / 48 / 7500
+apr_offshore = 1800000 / 365 / 48 / 7500
+may_offshore = 1900000 / 365 / 48 / 7500
+jun_offshore = 1500000 / 365 / 48 / 7500
+jul_offshore = 1700000 / 365 / 48 / 7500
+aug_offshore = 1400000 / 365 / 48 / 7500
+sep_offshore = 2150000 / 365 / 48 / 7500
+oct_offshore = 2400000 / 365 / 48 / 7500
+nov_offshore = 2300000 / 365 / 48 / 7500
+dec_offshore = 3300000 / 365 / 48 / 7500
+
+jan_offshore_wind_series = np.random.normal(jan_offshore, jan_offshore / 2, 48).clip(min=0)
+feb_offshore_wind_series = np.random.normal(feb_offshore, feb_offshore / 2, 48).clip(min=0)
+mar_offshore_wind_series = np.random.normal(mar_offshore, mar_offshore / 2, 48).clip(min=0)
+apr_offshore_wind_series = np.random.normal(apr_offshore, apr_offshore / 2, 48).clip(min=0)
+may_offshore_wind_series = np.random.normal(may_offshore, may_offshore / 2, 48).clip(min=0)
+jun_offshore_wind_series = np.random.normal(jun_offshore, jun_offshore / 2, 48).clip(min=0)
+jul_offshore_wind_series = np.random.normal(jul_offshore, jul_offshore / 2, 48).clip(min=0)
+aug_offshore_wind_series = np.random.normal(aug_offshore, aug_offshore / 2, 48).clip(min=0)
+sep_offshore_wind_series = np.random.normal(sep_offshore, sep_offshore / 2, 48).clip(min=0)
+oct_offshore_wind_series = np.random.normal(oct_offshore, oct_offshore / 2, 48).clip(min=0)
+nov_offshore_wind_series = np.random.normal(nov_offshore, nov_offshore / 2, 48).clip(min=0)
+dec_offshore_wind_series = np.random.normal(dec_offshore, dec_offshore / 2, 48).clip(min=0)
+summer_offshore_wind_series = np.random.normal(winter_offshore, winter_offshore / 2, 48).clip(min=0)
+winter_offshore_wind_series = np.random.normal(winter_offshore, winter_offshore / 2, 48).clip(min=0)
+year_offshore_wind_series = np.random.normal(year_offshore, year_offshore / 2, 48).clip(min=0)
+
+offshore_dict = {
+    'jan_offshore': jan_offshore_wind_series,
+    'feb_offshore': feb_offshore_wind_series,
+    'mar_offshore': mar_offshore_wind_series,
+    'apr_offshore': apr_offshore_wind_series,
+    'may_offshore': may_offshore_wind_series,
+    'jun_offshore': jun_offshore_wind_series,
+    'jul_offshore': jul_offshore_wind_series,
+    'aug_offshore': aug_offshore_wind_series,
+    'sep_offshore': sep_offshore_wind_series,
+    'oct_offshore': oct_offshore_wind_series,
+    'nov_offshore': nov_offshore_wind_series,
+    'dec_offshore': dec_offshore_wind_series,
+    'summer_offshore': summer_offshore_wind_series,
+    'winter_offshore': winter_offshore_wind_series,
+    'year_offshore': year_offshore_wind_series,
+}
+
+
 
 
 def get_solar_time_series(sunrise, sunset, power_income):
@@ -131,12 +189,14 @@ summer_solar_time_series = get_solar_time_series(sunrise=summer_sunrise, sunset=
                                                  power_income=summer_power_income)
 winter_solar_time_series = get_solar_time_series(sunrise=winter_sunrise, sunset=winter_sunset,
                                                  power_income=winter_power_income)
+year_solar_time_series = get_solar_time_series(sunrise=year_sunrise, sunset=year_sunset, power_income=year_power_income)
 
 solar_time_series_dict = {
     'jan_solar_time_series': jan_solar_time_series,
     'aug_solar_time_series': aug_solar_time_series,
     'summer_solar_time_series': summer_solar_time_series,
     'winter_solar_time_series': winter_solar_time_series,
+    'year_solar_time_series': year_solar_time_series,
 }
 
 # print(jan_solar_time_series)

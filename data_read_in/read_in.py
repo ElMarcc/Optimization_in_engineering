@@ -50,6 +50,7 @@ if dec != 17520:
 # Obtaining data sets for winter and summer and for each month
 winter_values = consumption_values[:winter_to_summer] + consumption_values[summer_to_winter:]
 summer_values = consumption_values[winter_to_summer:summer_to_winter]
+year_values = consumption_values
 
 jan_values = consumption_values[:jan]
 feb_values = consumption_values[jan:feb]
@@ -82,6 +83,7 @@ def create_avg_day(value_list):
     return avg_day_values
 
 
+avg_day_year = create_avg_day(year_values)
 avg_day_winter = create_avg_day(winter_values)
 avg_day_summer = create_avg_day(summer_values)
 avg_day_jan = create_avg_day(jan_values)
@@ -98,6 +100,7 @@ avg_day_nov = create_avg_day(nov_values)
 avg_day_dec = create_avg_day(dec_values)
 
 avg_day_dict = {
+    'avg_day_year': avg_day_year,
     'avg_day_winter': avg_day_winter,
     'avg_day_summer': avg_day_summer,
     'avg_day_jan': avg_day_jan,
