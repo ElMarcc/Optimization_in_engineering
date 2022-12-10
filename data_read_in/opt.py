@@ -1,11 +1,12 @@
 import numpy as np
+import pandas as pd
 from pymoo.algorithms.soo.nonconvex.ga import GA
 from pymoo.core.problem import Problem
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
 from read_in import avg_day_dict
 from sun_data_series import solar_time_series_dict, wind_dict, offshore_dict
-from typing import Dict, Any
+from typing import Dict, Any, Union, List
 
 
 # define problem
@@ -66,7 +67,7 @@ class OptProblem(Problem):
                 offshore_energy_generation = x[j, 2] * p_offshore[i]
                 demand = d[i] * time_step
                 pgrid[j, i] = max(0, demand - (
-                            solar_energy_generation + wind_energy_generation + offshore_energy_generation))
+                        solar_energy_generation + wind_energy_generation + offshore_energy_generation))
         return pgrid
 
 
@@ -92,7 +93,7 @@ def minimize_OptProblem(parameters: Dict[str, Any]):
     return result
 
 
-def get_parameters(time_period: str):
+def get_parameters(time_period: str, grid_cost: Union[float, int]):
     time_period_names = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec', 'summer',
                          'winter', 'year']
     if time_period not in time_period_names:
@@ -102,7 +103,7 @@ def get_parameters(time_period: str):
         'c_s': 105,  # costs solar energy [€/MWpeak/day]
         'c_w': 332,  # costs wind energy [€/MWpeak/day]
         'c_o': 682,  # costs offshore wind energy [€/MWpeak/day]
-        'c_grid': 178,  # costs of grid power [€/MWh]
+        'c_grid': grid_cost,  # costs of grid power [€/MWh]
         'time_step': 0.5,  # time_step [h]
         'p_solar': solar_time_series_dict[f'{time_period}_solar_time_series'],  # solar power production [MWh/MWpeak]
         'p_wind': wind_dict[f'{time_period}_wind'],  # wind power production [MW/MWpeak]
@@ -111,28 +112,79 @@ def get_parameters(time_period: str):
     return parameters
 
 
-pars = get_parameters('year')
+def create_df(time_periods: List[str], grid_costs: List[Union[float, int]]):
+    data_strs = []
+    col_strs = ['total_price[€/day]', 'installed_solar[MW]', 'installed_onshore[MW]', 'installed_offshore[MW]',
+                'grid_consumption[%]', 'renewable_consumption[%]', 'renewable_production[%]']
+    for time_period in time_periods:
+        for grid_cost in grid_costs:
+            data_strs.append(f'{time_period}_{grid_cost}')
+    df = pd.DataFrame(index=data_strs, columns=col_strs)
+    return df
 
-result = minimize_OptProblem(pars)
 
-x = result.X
-p_grid = np.zeros((48,))
-for i in range(48):
-    p_grid[i] = max(0, pars['d'][i] * pars['time_step'] - (
-            x[0] * pars['p_solar'][i] + x[1] * pars['p_wind'][i] * pars['time_step']))
-part_of_grid = np.sum(p_grid) / np.sum(pars['d'] * pars['time_step'])
-part_of_renewables = (np.sum(x[0] * pars['p_solar']) + np.sum(x[1] * pars['p_wind'] * pars['time_step'])) / np.sum(
-    pars['d'] * pars['time_step'])
-print(f'The percentage of renewables of the whole daily demand is: {100 - part_of_grid * 100}')
-print(f'The percentage of the grid of the whole daily demand is: {part_of_grid * 100}')
-print(f'The total potential production of renewables is {part_of_renewables * 100}%.')
+def evaluate(time_periods: List[str], grid_costs: List[Union[float, int]]):
+    df = create_df(time_periods, grid_costs)
+    for idx_tp, time_period in enumerate(time_periods):
+        for idx_gc, grid_cost in enumerate(grid_costs):
+            pars = get_parameters(time_period, grid_cost)
+            result = minimize_OptProblem(pars)
+            x = result.X
+            p_grid = np.zeros((48,))
+            for i in range(48):
+                p_grid[i] = max(0, pars['d'][i] * pars['time_step'] - (
+                        x[0] * pars['p_solar'][i] +
+                        x[1] * pars['p_wind'][i] * pars['time_step'] +
+                        x[2] * pars['p_offshore'][i]))
+            part_of_grid = np.sum(p_grid) / np.sum(pars['d'] * pars['time_step'])
+            prod_of_renewables = (np.sum(x[0] * pars['p_solar']) + np.sum(
+                x[1] * pars['p_wind'] * pars['time_step']) + np.sum(x[2] * pars['p_offshore'])) / np.sum(
+                pars['d'] * pars['time_step'])
+            y = np.array([part_of_grid * 100, (1 - part_of_grid) * 100, prod_of_renewables])
+            row = np.concatenate((
+                result.F, x, np.array([part_of_grid * 100, (1 - part_of_grid) * 100, prod_of_renewables])))
+            df.iloc[idx_tp * len(grid_costs) + idx_gc] = row
+    return df
 
-cost_per_energy_solar = x[0] * pars['c_s'] / np.sum(x[0] * pars['p_solar'])
-cost_per_energy_wind = x[1] * pars['c_w'] / np.sum(x[1] * pars['p_wind'] * pars['time_step'])
-cost_per_energy_offshore = x[2] * pars['c_o'] / np.sum(x[2] * pars['p_offshore'])
+
+time_periods = [
+    'year',
+    # 'summer',
+    # 'winter',
+    # 'jan',
+    # 'aug',
+]
+grid_costs = [
+    39.45,
+    178,
+]
+
+df = evaluate(time_periods, grid_costs)
+
+print(df.to_string())
+
+pars = get_parameters('year', 178)
+
+# result = minimize_OptProblem(pars)
+#
+# x = result.X
+# p_grid = np.zeros((48,))
+# for i in range(48):
+#     p_grid[i] = max(0, pars['d'][i] * pars['time_step'] - (
+#             x[0] * pars['p_solar'][i] + x[1] * pars['p_wind'][i] * pars['time_step'] + x[2] * pars['p_offshore'][i]))
+# part_of_grid = np.sum(p_grid) / np.sum(pars['d'] * pars['time_step'])
+# part_of_renewables = (np.sum(x[0] * pars['p_solar']) + np.sum(x[1] * pars['p_wind'] * pars['time_step']) + np.sum(
+#     x[2] * pars['p_offshore'])) / np.sum(pars['d'] * pars['time_step'])
+# print(f'The percentage of renewables of the whole daily demand is: {100 - part_of_grid * 100}')
+# print(f'The percentage of the grid of the whole daily demand is: {part_of_grid * 100}')
+# print(f'The total potential production of renewables is {part_of_renewables * 100}%.')
+#
+cost_per_energy_solar = pars['c_s'] / np.sum(pars['p_solar'])
+cost_per_energy_wind = pars['c_w'] / np.sum(pars['p_wind'] * pars['time_step'])
+cost_per_energy_offshore = pars['c_o'] / np.sum(pars['p_offshore'])
 print(f'The cost [€] per potential energy [MWh] for solar energy is: {cost_per_energy_solar} €/MWh')
 print(f'The cost [€] per potential energy [MWh] for wind energy is: {cost_per_energy_wind} €/MWh')
 print(f'The cost [€] per potential energy [MWh] for offshore energy is: {cost_per_energy_offshore} €/MWh')
-
-print(result.X)
-print(result.F)
+#
+# print(result.X)
+# print(result.F)
