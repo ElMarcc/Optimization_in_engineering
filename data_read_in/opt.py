@@ -1,3 +1,5 @@
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from pymoo.algorithms.soo.nonconvex.ga import GA
@@ -39,17 +41,17 @@ class OptProblem(Problem):
         g1 = np.zeros((x.shape[0],))
         g2 = np.zeros((x.shape[0],))
         g3 = np.zeros((x.shape[0],))
-        p_grid = self.get_p_grid(x=x, d=pars['d'], p_solar=pars['p_solar'], p_wind=pars['p_wind'],
-                                 p_offshore=pars['p_offshore'],
+        p_grid = self.get_p_grid(x=x, d=pars['d'], p_solar=pars['uct_p_solar'], p_wind=pars['uct_p_wind'],
+                                 p_offshore=pars['uct_p_offshore'],
                                  time_step=pars['time_step'])
         for i in range(x.shape[0]):
             wind_cost = x[i, 1] * pars['c_w']
             solar_cost = x[i, 0] * pars['c_s']
             offshore_cost = x[i, 2] * pars['c_o']
             grid_power = p_grid[i, :]
-            wind_power_generation = np.sum(x[i, 1] * pars['p_wind'] * pars['time_step'])
-            solar_power_generation = np.sum(x[i, 0] * pars['p_solar'])
-            offshore_power_generation = np.sum(x[i, 2] * pars['p_offshore'])
+            wind_power_generation = np.sum(x[i, 1] * pars['uct_p_wind'] * pars['time_step'])
+            solar_power_generation = np.sum(x[i, 0] * pars['uct_p_solar'])
+            offshore_power_generation = np.sum(x[i, 2] * pars['uct_p_offshore'])
             percentage = (wind_power_generation + solar_power_generation + offshore_power_generation) / np.sum(
                 pars['d'] * pars['time_step'] / 2)
             if wind_power_generation != 0:
@@ -179,7 +181,7 @@ def evaluate(time_periods: List[str], grid_costs: List[Union[float, int]]):
 
 
 def calc_cons_violations(x: np.ndarray, pars: Dict[str, Any], time_period: str):
-    n = 1
+    n = 1000000
     g1_uct = np.zeros((n,))
     g2_uct = np.zeros((n,))
     g3_uct = np.zeros((n,))
@@ -191,20 +193,27 @@ def calc_cons_violations(x: np.ndarray, pars: Dict[str, Any], time_period: str):
     sunrise = sunrise_dict[f'{time_period}_sunrise']
     sunset = sunset_dict[f'{time_period}_sunset']
     solar_power_income = dict_solar_power[f'{time_period}_power_income']
+    uct_solar_power_income = uct_solar_time_series_dict[f'uct_{time_period}_solar_time_series']
     # get onshore wind data
     onshore_wind_eff = onshore_wind_dict[f'{time_period}_wind']
+    uct_onshore_wind_eff = uct_wind_dict[f'uct_{time_period}_wind']
     # get offshore wind data
     offshore_wind_eff = offshore_wind_dict[f'{time_period}_offshore']
+    uct_offshore_wind_eff = uct_offshore_dict[f'uct_{time_period}_offshore']
     for i in range(n):
         _, solar_data[:, i] = get_solar_time_series(sunrise, sunset, solar_power_income)
-        onshore_data[:, i] = get_onshore_time_series(onshore_wind_eff)
-        offshore_data[:, i] = get_offshore_time_series(offshore_wind_eff)
+        #solar_data[:, i], _ = get_solar_time_series(sunrise, sunset, solar_power_income)
+        #onshore_data[:, i] = get_onshore_time_series(onshore_wind_eff)
+        #offshore_data[:, i] = get_offshore_time_series(offshore_wind_eff)
     p_grid = np.zeros((48, n))
     for j in range(48):
         p_grid[j, :] = pars['d'][j] * pars['time_step'] - (
                 x[0] * solar_data[j, :] +
-                x[1] * onshore_data[j, :] * pars['time_step'] +
-                x[2] * offshore_data[j, :])
+                #x[0] * uct_solar_power_income[j] +
+                #x[1] * onshore_data[j, :] * pars['time_step'] +
+                x[1] * uct_onshore_wind_eff[j] * pars['time_step'] +
+                #x[2] * offshore_data[j, :])
+                x[2] * uct_offshore_wind_eff[j])
     for k in range(n):
         g1_uct[k] = np.sum(p_grid[:, k]) - np.sum(pars['d'] * pars['time_step'] / 2)
     g2_uct[:] = 0.25 * (x[1] + x[2]) - x[0]
@@ -213,6 +222,55 @@ def calc_cons_violations(x: np.ndarray, pars: Dict[str, Any], time_period: str):
     p_f2 = (g2_uct > 0).sum() / n
     p_f3 = (g3_uct > 0).sum() / n
     return np.array([p_f1, p_f2, p_f3])
+
+
+def plot(df:pd.DataFrame, time_periods: List[str], grid_costs: List[Union[float, int]]):
+    # costs
+    rows = np.array([f'year_{grid_cost}' for grid_cost in grid_costs])
+    total_price_year_values = np.array(df.loc[rows, 'F[€/day]'])
+    fig, ax = plt.subplots()
+    year_costs = ax.bar(grid_costs, total_price_year_values)
+    ax.set_xticks([50, 100, 150, 200, 250])
+    ax.set_xlabel('Grid energy price [€/MWh]')
+    ax.set_ylabel('Total cost for one day [€/day]')
+    ax.set_title(f'Year')
+    plt.tight_layout()
+    plt.show()
+    # installed peak capacity
+    for time_period in time_periods:
+        rows = np.array([f'{time_period}_{grid_cost}' for grid_cost in grid_costs])
+        installed_solar = np.array(df.loc[rows, 'x_1[MW]'])
+        installed_onshore = np.array(df.loc[rows, 'x_2[MW]'])
+        installed_offshore = np.array(df.loc[rows, 'x_3[MW]'])
+        fig, ax = plt.subplots()
+        solar, = ax.plot(grid_costs, installed_solar, label='Solar')
+        onshore, = ax.plot(grid_costs, installed_onshore, label='Onshore')
+        offshore, = ax.plot(grid_costs, installed_offshore, label='Offshore')
+        ax.legend(handles=[solar, onshore, offshore])
+        ax.set_xticks([50, 100, 150, 200, 250])
+        ax.set_xlabel('Grid energy price [€/MWh]')
+        ax.set_ylabel('Installed peak power [MW]')
+        ax.set_title(f'{time_period.capitalize()}')
+        plt.tight_layout()
+        plt.show()
+    # consumed energy
+    for time_period in time_periods:
+        rows = np.array([f'{time_period}_{grid_cost}' for grid_cost in grid_costs])
+        grid_consumption = np.array(df.loc[rows, 'g_c[%]'])
+        renewable_consumption = np.array(df.loc[rows, 'r_c[%]'])
+        renewable_production = np.array(df.loc[rows, 'r_p[%]'])
+        fig, ax = plt.subplots()
+        grid_consu, = ax.plot(grid_costs, grid_consumption, label='Grid consumption')
+        ren_consu, = ax.plot(grid_costs, renewable_consumption, label='Renewable consumption')
+        ren_prod, = ax.plot(grid_costs, renewable_production, label='Renewable production')
+        ax.legend(handles=[grid_consu, ren_consu, ren_prod])
+        ax.set_xticks([50, 100, 150, 200, 250])
+        ax.set_xlabel('Grid energy price [€/MWh]')
+        ax.set_ylabel('Share of whole consumption [%]')
+        ax.set_title(f'{time_period.capitalize()}')
+        plt.tight_layout()
+        plt.show()
+
 
 
 
@@ -232,6 +290,8 @@ grid_costs = [
 ]
 
 df = evaluate(time_periods, grid_costs)
+
+#plot(df, time_periods, grid_costs)
 
 print(df.to_string())
 
@@ -261,8 +321,8 @@ print(f'The cost [€] per potential energy [MWh] for offshore energy is: {cost_
 # print(result.X)
 # print(result.F)
 
-save = 0
+save = 1
 
 if save:
-    with pd.ExcelWriter('result_save.xlsx') as writer:
+    with pd.ExcelWriter('result_new_solar.xlsx') as writer:
         df.to_excel(writer, sheet_name='results')

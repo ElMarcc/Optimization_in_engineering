@@ -1,7 +1,7 @@
 import numpy as np
 import math
 
-np.random.seed(1)
+np.random.seed(3)
 uncertainty = 0
 
 jan_sunrise = 8.5
@@ -247,21 +247,21 @@ offshore_wind_dict = {
     'dec_offshore': dec_offshore,
 }
 
-uct_jan_offshore_wind_series = np.random.normal(jan_offshore, jan_offshore / 2, 48).clip(min=0)
-uct_feb_offshore_wind_series = np.random.normal(feb_offshore, feb_offshore / 2, 48).clip(min=0)
-uct_mar_offshore_wind_series = np.random.normal(mar_offshore, mar_offshore / 2, 48).clip(min=0)
-uct_apr_offshore_wind_series = np.random.normal(apr_offshore, apr_offshore / 2, 48).clip(min=0)
-uct_may_offshore_wind_series = np.random.normal(may_offshore, may_offshore / 2, 48).clip(min=0)
-uct_jun_offshore_wind_series = np.random.normal(jun_offshore, jun_offshore / 2, 48).clip(min=0)
-uct_jul_offshore_wind_series = np.random.normal(jul_offshore, jul_offshore / 2, 48).clip(min=0)
-uct_aug_offshore_wind_series = np.random.normal(aug_offshore, aug_offshore / 2, 48).clip(min=0)
-uct_sep_offshore_wind_series = np.random.normal(sep_offshore, sep_offshore / 2, 48).clip(min=0)
-uct_oct_offshore_wind_series = np.random.normal(oct_offshore, oct_offshore / 2, 48).clip(min=0)
-uct_nov_offshore_wind_series = np.random.normal(nov_offshore, nov_offshore / 2, 48).clip(min=0)
-uct_dec_offshore_wind_series = np.random.normal(dec_offshore, dec_offshore / 2, 48).clip(min=0)
-uct_summer_offshore_wind_series = np.random.normal(winter_offshore, winter_offshore / 2, 48).clip(min=0)
-uct_winter_offshore_wind_series = np.random.normal(winter_offshore, winter_offshore / 2, 48).clip(min=0)
-uct_year_offshore_wind_series = np.random.normal(year_offshore, year_offshore / 2, 48).clip(min=0)
+uct_jan_offshore_wind_series = np.random.normal(jan_offshore, jan_offshore / 4, 48).clip(min=0)
+uct_feb_offshore_wind_series = np.random.normal(feb_offshore, feb_offshore / 4, 48).clip(min=0)
+uct_mar_offshore_wind_series = np.random.normal(mar_offshore, mar_offshore / 4, 48).clip(min=0)
+uct_apr_offshore_wind_series = np.random.normal(apr_offshore, apr_offshore / 4, 48).clip(min=0)
+uct_may_offshore_wind_series = np.random.normal(may_offshore, may_offshore / 4, 48).clip(min=0)
+uct_jun_offshore_wind_series = np.random.normal(jun_offshore, jun_offshore / 4, 48).clip(min=0)
+uct_jul_offshore_wind_series = np.random.normal(jul_offshore, jul_offshore / 4, 48).clip(min=0)
+uct_aug_offshore_wind_series = np.random.normal(aug_offshore, aug_offshore / 4, 48).clip(min=0)
+uct_sep_offshore_wind_series = np.random.normal(sep_offshore, sep_offshore / 4, 48).clip(min=0)
+uct_oct_offshore_wind_series = np.random.normal(oct_offshore, oct_offshore / 4, 48).clip(min=0)
+uct_nov_offshore_wind_series = np.random.normal(nov_offshore, nov_offshore / 4, 48).clip(min=0)
+uct_dec_offshore_wind_series = np.random.normal(dec_offshore, dec_offshore / 4, 48).clip(min=0)
+uct_summer_offshore_wind_series = np.random.normal(summer_offshore, summer_offshore / 4, 48).clip(min=0)
+uct_winter_offshore_wind_series = np.random.normal(winter_offshore, winter_offshore / 4, 48).clip(min=0)
+uct_year_offshore_wind_series = np.random.normal(year_offshore, year_offshore / 4, 48).clip(min=0)
 
 jan_offshore_wind_series = np.ones((48,)) * jan_offshore
 feb_offshore_wind_series = np.ones((48,)) * feb_offshore
@@ -275,7 +275,7 @@ sep_offshore_wind_series = np.ones((48,)) * sep_offshore
 oct_offshore_wind_series = np.ones((48,)) * oct_offshore
 nov_offshore_wind_series = np.ones((48,)) * nov_offshore
 dec_offshore_wind_series = np.ones((48,)) * dec_offshore
-summer_offshore_wind_series = np.ones((48,)) * winter_offshore
+summer_offshore_wind_series = np.ones((48,)) * summer_offshore
 winter_offshore_wind_series = np.ones((48,)) * winter_offshore
 year_offshore_wind_series = np.ones((48,)) * year_offshore
 
@@ -334,7 +334,7 @@ def get_solar_time_series(sunrise, sunset, power_income):
             power_production = -a * b / pi * math.cos(pi / b * (ending_time - sunrise)) + \
                                a * b / pi * math.cos(pi / b * (starting_time - sunrise))
 
-            uct_time_series[idx] = np.random.normal(power_production, power_production / 2, 1).clip(min=0)
+            uct_time_series[idx] = np.random.normal(power_production, power_production / 3, 1).clip(min=0)
 
             time_series[idx] = power_production
 
@@ -347,7 +347,7 @@ def get_onshore_time_series(onshore_wind):
     return onshore_wind_series
 
 def get_offshore_time_series(offshore_wind):
-    offshore_wind_series = np.random.normal(offshore_wind, offshore_wind / 2, 48).clip(min=0)
+    offshore_wind_series = np.random.normal(offshore_wind, offshore_wind / 4, 48).clip(min=0)
     return offshore_wind_series
 
 
